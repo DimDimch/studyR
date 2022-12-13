@@ -1,0 +1,534 @@
+---
+title: "ggplot2"
+output:
+  ioslides_presentation:
+    font_adjustment: -5
+---
+##
+*Основные компоненты графика ggplot*:
+<font size="4">
+
+- ggplot() - *create a new ggplot*
+
+- data - *data.frame format data*
+
+- aes() - *construct aesthetic mappings*
+
+- _layers_, _scales_, _coords_, _facets_, добавленные с помощью _+_
+  - слои _layers_
+  - геометрические фигуры _geoms_ (points, lines, polygons, etc.)
+  - статистические преобразования _stats_ (binning and counting)
+
+  - параметры _scales_ (colour, shape, size, legend and axes)
+
+  - координаты _coords_
+
+  - группировка _facets_
+
+- ggsave() - *save a ggplot (or other grid object) with sensible defaults*
+
+- qplot() quickplot() - *quick plot*
+
+</font>
+
+```{r message=F, warning = F, echo = F}
+library(ggplot2)
+```
+##
+*geom_col & geom_bar*
+<font size="4">
+
+- geom_col, geom_bar(stat="identity")
+  - for data frame where one column represents the x position of each bar, and another column represents the vertical (y) height of each bar
+- geom_bar(stat="identity") [by default]
+  - for data has one row representing each case, and you want plot counts of the cases
+
+</font>
+
+##
+*geom_col & geom_bar*
+```{r fig.height=1.5, fig.width = 2, message=F, warning=F}
+dat <- data.frame(
+        time = factor(c("Lunch","Dinner"), levels=c("Lunch","Dinner")),
+        total_bill = c(14.89, 17.23))
+ggplot(data=dat, aes(x=time, y=total_bill)) + geom_col()
+```
+
+##
+*geom_col & geom_bar*
+```{r fig.height=1.5, fig.width =2, fontsize=3, message=F, warning=F}
+ggplot(data=dat, aes(x=time, y=total_bill)) + geom_col()
+ggplot(data=dat, aes(x=time, y=total_bill)) + geom_bar(stat="identity")
+```
+
+##
+*geom_col*
+
+```{r fig.height=1.5, fig.width = 2, message=F, warning=F}
+ggplot() + geom_bar(data=dat, aes(x=time, y=total_bill), stat="identity")
+```
+
+```{r fig.height=1.5, fig.width = 2, message=F, warning = F}
+ggplot() + geom_col(data=dat, aes(x=time, y=total_bill), fill = "white")
+```
+
+##
+*geom_col*
+```{r fig.height=2, fig.width = 4}
+ggplot() +
+         geom_col(data=dat,
+                  aes(x=time, y=total_bill, fill = time),
+                  colour = 'black')
+```
+
+
+##
+*geom_col*
+
+```{r echo = F, warning = F, message = F}
+library(gcookbook)
+library(dplyr)# Load gcookbook for the cabbage_exp data set
+
+```
+
+
+```{r fig.height=2}
+cabbage_exp %>% head(3)
+ggplot(cabbage_exp, aes(x = Date, y = Weight, fill = Cultivar)) +
+        geom_col()
+```
+
+##
+*geom_col*
+```{r fig.height=1.5, fig.width = 3}
+ggplot(cabbage_exp, aes(x = Date, y = Weight, fill = Cultivar)) +
+        geom_col()
+ggplot(cabbage_exp, aes(x = Date, y = Weight, fill = Cultivar)) +
+        geom_col(position = "dodge")
+```
+
+
+##
+*geom_bar*
+
+```{r, echo=F, message = F, warning = F}
+library(reshape2)
+```
+
+```{r, error=F, warning=F, fig.height=1.5}
+tips %>% head(3)
+ggplot(data=tips, aes(x=day)) + geom_bar()
+```
+
+```{r, echo=F, message = F, warning = F}
+library(reshape2)
+```
+
+
+
+
+```{r, echo=F, message = F, warning = F}
+library(reshape2)
+```
+```{r, echo=F}
+library(reshape2)
+```
+
+##
+*geom_boxplot*
+```{r ,error=F, warning=F, message=F, fig.height=1.5, fig.width= 3}
+ggplot(PlantGrowth, aes(x=group, y=weight)) +
+        geom_boxplot()
+ggplot(PlantGrowth, aes(x=group, y=weight, fill = group)) +
+        geom_boxplot(colour="black")
+```
+
+
+##
+*geom_path vs geom_line*
+<font size=5>
+
+- geom_path() - значения соединены в том порядке, в котором они представлены в df
+- geom_line() - значения соединены в том порядке, в котором они представлены по оси x
+
+</font>
+
+```{r, echo=F}
+recent <- economics[economics$date > as.Date("2013-01-01"), ]
+
+```
+
+##
+*geom_path vs geom_line*
+```{r echo = F, message = F, warning = F}
+economics %>% head(3)
+```
+```{r fig.height=1.5, warning = F, message = F}
+m <- ggplot(economics, aes(unemploy/pop, psavert))
+m1 <- m + geom_path()
+m2 <- m + geom_line()
+```
+```{r echo=F, message = F, warning=F, fig.height=1.8, fig.width = 4}
+library(gridExtra)
+grid.arrange(m1 + ggtitle('geom_path'), m2 + ggtitle('geom_line'), ncol = 2)
+```
+
+
+##
+*geom_line vs geom_step*
+
+```{r fig.height=1.8, message = F, warning = F}
+recent %>% head(3)
+g1 <- ggplot(recent, aes(date, unemploy)) + geom_line()
+g2 <- ggplot(recent, aes(date, unemploy)) + geom_step()
+
+```
+
+
+```{r echo=F, fig.height=1.8}
+library(gridExtra)
+grid.arrange(g1 + ggtitle('geom_line'), g2 + ggtitle('geom_step'), ncol = 2)
+```
+
+##
+*geom_line*
+
+```{r fig.height=1.8}
+c <- ggplot(economics, aes(x = date, y = pop))
+c1 <- c + geom_line(colour = 'red', size = 20)
+c2 <- c + geom_line(colour = 'blue', linetype = 2)
+c3 <- c + geom_line(arrow = arrow(angle = 15, ends = "both", type = "closed"))
+
+```
+
+```{r echo=F, fig.height=1.8}
+library(gridExtra)
+grid.arrange(c1 + ggtitle('c1'), c2 + ggtitle('c2'), c3 + ggtitle('c3'), ncol = 3)
+```
+
+
+##
+*geom_line*
+
+
+```{r, fig.height=1.8}
+x <- seq(0.01, .99, length.out = 100)
+df <- data.frame(
+  x = rep(x, 2),
+  y = c(qlogis(x), 2 * qlogis(x)),
+  group = rep(c("a","b"), each = 100)
+)
+ggplot(df, aes(x=x, y=y, group=group, fill=group)) + geom_line()
+
+```
+
+
+##
+*geom_line + geom_point*
+```{r echo = F, message = F, warning = F}
+library(gridExtra)
+
+```
+```{r, error=F, warning=F, fig.height=3}
+g <- ggplot(data=dat, aes(x=time, y=total_bill, group=1))
+gg1 <- g + geom_line()
+gg2 <- g + geom_line() + geom_point()
+gg3 <- g + geom_line(colour="red", linetype="dashed", size=1.5) +
+  geom_point(colour="red", size=4, shape=21, fill="white")
+gg4 <- g + geom_line() + geom_point() +
+        expand_limits(y=0) +
+        xlab("Time of day") + ylab("Total bill") +
+        ggtitle("Average bill for 2 people")
+```
+
+```{r fig.height = 1.8, echo = F, message = F, warning = F}
+grid.arrange(gg1, gg2, gg3, gg4, ncol=4)
+
+```
+
+
+```{r, error=F, warning=F, message = F, echo = F}
+set.seed(1234)
+dat <- data.frame(cond = factor(rep(c("A","B"), each=200)),
+                  rating = c(rnorm(200),rnorm(200, mean=.8)))
+
+```
+
+##
+*geom_histogram, geom_density*
+
+```{r fig.height=3}
+g <- ggplot(dat, aes(x=rating))
+gg1 <- g + geom_histogram()
+gg2 <- g + geom_histogram(binwidth=.5, colour="black", fill="white")
+gg3 <- g + geom_density()
+```
+
+
+```{r fig.height=1.5, echo = F}
+grid.arrange(gg1, gg2, gg3, ncol=3)
+```
+
+##
+*geom_histogram, geom_density*
+
+
+```{r fig.height=3}
+gg4 <- ggplot(dat, aes(x=rating)) +
+        geom_density(alpha=.2, fill="#FF6666") +
+        geom_histogram(binwidth=.5, colour="black", fill="white")
+gg5 <- ggplot(dat, aes(x=rating)) +
+        geom_histogram(aes(y=..density..), binwidth=.5,
+                       colour="black", fill="white") +
+        geom_density(alpha=.2, fill="#FF6666")
+gg6 <- ggplot(dat, aes(x=rating)) +
+        geom_density(fill="#FF6666") +
+        geom_histogram(aes(y=..density..), alpha=.2,  binwidth=.5,
+                       colour="black", fill="blue")
+
+
+```
+
+
+```{r fig.height=1.5, echo = F}
+grid.arrange(gg4, gg5, gg6, ncol=3)
+```
+
+
+
+##
+*geom_errorbar vs geom_pointrang*
+
+```{r echo=F, error=F, warning=F, message=F}
+library(dplyr)
+library(gridExtra)
+
+tg <- ToothGrowth
+tgg <- group_by(tg, supp, dose)
+tgs <- summarise(tgg,
+                 len_mean = mean(len),
+                 len_max = mean(len) + 1.96 * sd(len)/sqrt(length(len)),
+                 len_min = mean(len) - 1.96 * sd(len)/sqrt(length(len))) %>% ungroup()
+tgs %>% head(3)
+```
+
+
+```{r error=F, warning=F, message=F, fig.height=1.5}
+g <- ggplot(tgs, aes(x=dose, y=len_mean, colour=supp))
+gg1 <- g + geom_line() + geom_point() +
+        geom_errorbar(aes(ymin=len_min, ymax=len_max), width=.1)
+gg2 <- g + geom_line() +
+         geom_pointrange(aes(ymin=len_min, ymax=len_max))
+```
+
+```{r, echo=F, fig.height=1.5}
+grid.arrange(gg1, gg2, ncol = 2)
+```
+
+
+##
+*geom_errorbar*
+
+```{r , error=F, warning=F, message=F, fig.height=1.5, fig.width= 15}
+gg1 <- ggplot(tgs, aes(x=dose, y=len_mean, colour=supp)) +
+        geom_errorbar(aes(ymin=len_min, ymax=len_max), width=.1) + geom_line() + geom_point()
+pd <- position_dodge(0.1) # move them .05 to the left and right
+gg2 <- ggplot(tgs, aes(x=dose, y=len_mean, colour=supp)) +
+        geom_errorbar(aes(ymin=len_min, ymax=len_max), width=.1, position=pd) + geom_line(position=pd) + geom_point(position=pd)
+
+```
+
+```{r, echo=F, fig.height=1.5}
+grid.arrange(gg1, gg2, ncol = 2)
+```
+
+
+##
+*geom_point + geom_smooth*
+```{r echo=F, error=F, warning=F, message=F}
+dat <- data.frame(cond = rep(c("A", "B"), each=10),
+                  xvar = 1:20 + rnorm(20,sd=3),
+                  yvar = 1:20 + rnorm(20,sd=3))
+
+```
+
+
+```{r, error=F, warning=F, message=F, fig.height=3, fig.width= 15}
+head(dat)
+
+gg1 <- ggplot(dat, aes(x=xvar, y=yvar)) + geom_point(shape=1)
+gg2 <- ggplot(dat, aes(x=xvar, y=yvar)) + geom_point(shape=1) + geom_smooth(method=lm) # Add linear regression line (by default includes 95% confidence region)
+gg3 <- ggplot(dat, aes(x=xvar, y=yvar)) + geom_point(shape=1) + geom_smooth(method=lm, se=FALSE) # Add linear regression line, don't add shaded confidence region
+gg4 <- ggplot(dat, aes(x=xvar, y=yvar)) + geom_point(shape=1) + geom_smooth() # Add a loess smoothed fit curve with confidence region
+
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width= 15}
+grid.arrange(gg1, gg2, gg3, gg4, ncol = 4)
+```
+
+
+## *geom_text*, *geom_labels*
+- label individual observations or groups of observations
+
+```{r echo=F}
+best_in_class <- mpg %>%
+  group_by(class) %>%
+  filter(row_number(desc(hwy)) == 1)
+
+```
+
+```{r, fig.height=3, fig.width= 15}
+gg1 <- ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(colour = class)) +
+  geom_text(aes(label = model), data = best_in_class)
+
+gg2 <- ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(colour = class)) +
+  geom_label(aes(label = model), data = best_in_class, nudge_y = 2, alpha = 0.5)
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width= 15}
+grid.arrange(gg1, gg2, ncol = 2)
+```
+
+## _scales_
+
+*scale_[название переменной]_[тип переменной]*
+
+ - scale_x_continuous
+ - scale_y_continuous
+ - scale_fill_discrete
+ - scale_colour_discrete
+ - scale_colour_hue
+ - scale_fill_manual
+ - scale_alpha_manual
+ - scale_shape_manual
+
+## _scales_
+
+```{r}
+bp <- ggplot(data=PlantGrowth, aes(x=group, y=weight, fill=group)) + geom_boxplot()
+bp1 <- bp + scale_fill_discrete(guide=FALSE)
+bp2 <- bp + scale_fill_discrete(guide = guide_legend(reverse=TRUE))
+bp3 <- bp + scale_fill_discrete(breaks=c("trt1","ctrl","trt2"))
+bp4 <- bp + scale_fill_discrete(labels=c("Control", "Treatment 1", "Treatment 2"))
+bp5 <- bp + scale_fill_manual(labels=c("Control", "Treatment 1", "Treatment 2"),
+                              values=c("#999999", "#E69F00", "#56B4E9"))
+
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width = 18}
+grid.arrange(bp1, bp2, bp3, bp4, bp5, ncol = 5)
+```
+
+## _Scales_
+```{r, echo = F}
+dat1 <- data.frame(
+  sex = factor(c("Female","Female","Male","Male")),
+  time = factor(c("Lunch","Dinner","Lunch","Dinner"), levels=c("Lunch","Dinner")),
+  total_bill = c(13.53, 16.81, 16.24, 17.42)
+)
+head(dat1)
+```
+
+
+```{r, error=F, warning=F}
+gg <- ggplot(data=dat1, aes(x=time, y=total_bill, group=sex, colour=sex)) + geom_line(aes(linetype=sex), size=1) + geom_point(aes(shape=sex), size=3, fill="white") + expand_limits(y=c(0,20))
+gg1 <-  gg + scale_colour_hue(name="Sex of payer", l=50)
+
+gg2 <- gg1 + scale_shape_manual(name="Sex of payer",
+                                values=c(22,1)) +
+  scale_linetype_discrete(name="Sex of payer") +
+  xlab("Time of day") + ylab("Total bill") + # Set axis labels
+  ggtitle("Average bill for 2 people") +     # Set title
+  theme_bw() +
+  theme(legend.position=c(.8, .4))           # Position legend inside
+# This must go after theme_bw
+
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width = 18}
+grid.arrange(gg, gg1, gg2, ncol = 3)
+```
+
+## *scale*
+```{r}
+dsamp <- diamonds[sample(nrow(diamonds), 1000), ]
+d <- ggplot(dsamp, aes(carat, price)) + geom_point(aes(colour = clarity))
+dd1 <- d + scale_colour_hue(expression(clarity[beta]))
+dd2 <- d + scale_colour_hue(l = 40, c = 30)
+dd3 <- d + scale_colour_hue(l = 70, c = 30)
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width = 18}
+grid.arrange(d, dd1, dd2, dd3, ncol = 4)
+```
+
+## *scales*
+
+```{r}
+head(mpg)
+gg <- ggplot(mpg, aes(displ, hwy)) + geom_point()
+gg1 <- gg + scale_y_continuous(name = 'Highway fuel economy (mpg)')
+gg2 <- gg + scale_y_continuous(breaks = seq(0, 40, by = 5))
+gg3 <- gg + scale_x_continuous(limits = c(0, 10))
+gg4 <- gg + scale_x_continuous(labels = scales::comma)
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width = 15}
+grid.arrange(gg1, gg2, gg3, gg4, ncol = 4)
+```
+
+## *labs*
+- *title* - to add labels
+- *subtitle* - to add additional detail in a smaller font beneath the title
+- *caption* - to add text at the bottom right of the plot, often used to describe the source of the data
+- to replace the axis and legend titles
+
+# *labs*
+```{r warning=F, error=F, message=F}
+head(mpg)
+gg <- ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) + geom_smooth(se = FALSE)
+gg1 <- gg + labs(title = "Fuel efficiency generally decreases with engine size",
+                 subtitle = "Two seaters (sports cars) are an exception because of their light weight",
+                 caption = "Data from fueleconomy.gov")
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width = 18}
+grid.arrange(gg, gg1, ncol = 2)
+```
+
+## *labs*
+
+```{r warning=F, error=F, message=F}
+head(mpg)
+gg <- ggplot(mpg, aes(displ, hwy)) + geom_point(aes(color = class)) + geom_smooth(se = FALSE)
+gg1 <- gg + labs(x = "Engine displacement (L)",
+                 y = "Highway fuel economy (mpg)",
+                 colour = "Car type")
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width = 18}
+grid.arrange(gg, gg1, ncol = 2)
+```
+
+
+## *Facetting*
+- generates small multiples, each displaying a different subset of the data.
+
+```{r}
+head(tips)
+sp <- ggplot(tips, aes(x=total_bill, y=tip/total_bill)) + geom_point(shape=1)
+sp1 <- sp + facet_grid(. ~ sex)
+sp2 <- sp + facet_grid(sex ~ day)
+sp3 <- sp + facet_wrap( ~ day, ncol=2)
+sp4 <- sp + facet_grid(sex ~ day) + theme(strip.text.x = element_text(size=8, angle=75),
+                                          strip.text.y = element_text(size=12, face="bold"),
+                                          strip.background = element_rect(colour="red", fill="#CCCCFF"))
+```
+
+```{r, echo=F,error=F, warning=F, message=F, fig.height=3, fig.width = 18}
+grid.arrange(sp, sp1, sp2, sp3, sp4, ncol = 5)
+```
+

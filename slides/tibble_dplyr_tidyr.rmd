@@ -1,0 +1,345 @@
+---
+title: "Tidyverse"
+author: "Maria Gretsova"
+date: "9/29/2021"
+output:
+    ioslides_presentation: default
+    slide_presentation:  default
+---
+
+##
+*Tidyverse packages* - коллекция пакетов _R_, предназначенная для анализа данных
+
+- tibble
+- dplyr
+- tidyr
+- ggplot2
+- readr
+- stringr
+- forcats
+
+##
+***tibble***
+
+- это пакет, функция и структура данных ;)
+
+```{r, warning = F, error = F}
+library(tibble)
+tb <- tibble(id = 1:3,
+             months = month.name[1:3],
+             n_letters = nchar(month.name[1:3]))
+tb
+```
+
+
+##
+***tibble***
+```{r}
+typeof(tb)
+attributes(tb)
+
+```
+
+
+##
+***tibble***
+
+Отличия между *tibble* и *data.frame*
+
+- *tibble* не делает из строк факторы
+- *tibble* допускает использование любых названий (в том числе зарезервированные слова)
+- значения созданные внутри функции *tibble()* можно использовать в той же самой функции
+- у *tibble* не бывает названий строк
+- *tibble* и *data.frame* по-разному "достраивают" отсутсвующие наблюдения
+
+##
+***tibble***
+
+- допускает использование любых названий (в том числе зарезервированные слова)
+
+```{r}
+data.frame(`X = 1` = 1)
+tibble(`X = 1` = 1)
+```
+
+##
+***tibble***
+
+- значения созданные внутри функции *tibble()* можно использовать в той же самой функции
+
+```{r}
+tibble(
+  x = 1:3,
+  y = x * 2
+)
+```
+
+##
+***tibble***
+
+- у *tibble* не бывает названий строк
+
+```{r}
+library(tibble)
+df <- data.frame(id = 1:6,
+                 months = month.name[1:6],
+                 n_letters = nchar(month.name[1:6]))
+rownames(df) <- month.name[1:6]
+as_tibble(df)
+as_tibble(df, rownames = "name")
+
+```
+
+
+##
+***magrittr и оператор %>% ***
+```{r, warning = F, error = F}
+library(magrittr)
+car_data <-
+  mtcars %>%
+    subset(hp > 100) %>%
+    aggregate(. ~ cyl, data = ., FUN = . %>% mean %>% round(2)) %>%
+    transform(kpl = mpg %>% multiply_by(0.4251)) %>%
+    print
+```
+
+##
+***Dplyr*** - пакет для работы с *tibble*
+
+- работа со строками
+- работа со столбцами
+- агрегация данных
+
+##
+***Работа со строками: slice()***
+
+- выбор по номеру строки
+```{R message=FALSE, warning = FALSE}
+library(dplyr)
+my_data = tibble(id = 1:12,
+                 month_long = month.name[1:12],
+                 month_short = month.abb[1:12],
+                 n_letters = nchar(month.name[1:12]))
+```
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% slice(c(1,4,5))
+my_data %>% slice(-2:-10)
+```
+
+##
+***Работа со строками: модификации slice()***
+<font size="4.5">
+
+- *slice_head()*, *slice_tail()* - выбор первой и последней строки
+
+- *slice_sample()* - выбор случайных строк
+
+- *slice_min()*/*slice_max()* - выбор строк с мин/макс значенимем наблюдения
+
+- </font>
+```{R message=FALSE, warning = FALSE}
+my_data %>% slice_head()
+my_data %>% slice_min(n_letters)
+```
+##
+
+***Работа со строками: filter()***
+<font size="4">
+- выбор по условию
+</font>
+
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% filter(id < 3)
+```
+
+##
+
+***Работа со строками: filter()***
+
+<font size="4">
+можно использовать **==, >, >=, & , | , ! , xor(), is.na(), between(), near()**
+
+</font>
+```{R message=FALSE, warning = FALSE}
+my_data %>% filter(id > 3, id < 6)
+my_data %>% filter(id > 3 & id < 6)
+```
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% filter(id < 3 | id > 10) %>% head()
+```
+
+##
+***Работа со строками: filter()***
+
+- *фильтры с ограничениями в виде предикатов*
+
+```{r}
+my_data %>% filter_all( any_vars(. < 3)) #.vars_predicate
+
+my_data %>% filter_at( vars(starts_with("m")), any_vars(. < 3)) # .vars, .vars_predicate
+
+my_data %>% filter_if( ~ all(length(.) > 0), any_vars(. < 3)) #.predicate, .vars_predicate
+```
+
+##
+
+***Работа со строками: arrange()***
+
+- сортировка по ключу
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% arrange(n_letters, month_short) %>% head()
+```
+
+##
+***Работа с колонками: select()***
+
+- выбор колонок
+
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% select(month_short, n_letters) %>% head()
+```
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% select(month_short, n_letters)  %>% head()
+
+my_data %>% select(-id) %>% head()
+```
+
+##
+***Работа с колонками: rename()***
+
+- переименование колонок
+
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% rename('№' = id)
+my_data %>% rename_with(toupper, starts_with("Month"))
+```
+
+
+##
+***Работа с колонками: mutate()***
+
+
+```{R message=FALSE, warning = FALSE}
+my_data %>% mutate(id = id-1) %>% head(3)
+```
+
+##
+***Работа с колонками: relocate()***
+
+
+```{R message=FALSE, warning = FALSE}
+head(my_data, 3)
+my_data %>% relocate(id, month_short, .before = month_long) %>% head(3)
+```
+
+##
+***Работа с колонками: relocate()***
+
+
+```{R message=FALSE, warning = FALSE}
+head(my_data, 3)
+my_data %>% relocate(id, month_long: month_short, .after= n_letters) %>% head(3)
+```
+
+##
+*dplyr:: group_by + summarise*
+
+- group_by группирует data_frame (для сгруппированного data_frame все команды применяются к каждой группе данных)
+- summarise преобразует data_frame в одно значение
+
+```{r}
+gr_my_data <- group_by(my_data, n_letters)
+summarise(my_data, numbers = n())
+summarise(gr_my_data, numbers = n())
+```
+
+
+##
+*dplyr::inner_join, full_join*
+
+```{r}
+band_members %>% inner_join(band_instruments)
+band_members %>% full_join(band_instruments)
+```
+
+##
+*dplyr::right_join, left_join*
+
+```{r}
+band_members %>% right_join(band_instruments)
+band_members %>% left_join(band_instruments)
+```
+
+##
+***tidyr***
+
+- приведение данных к виду ***tidy dataset***
+ 1. У каждой наблюдаемой величины своя колонка
+ 2. У каждого наблюдения своя строчка
+ 3. Каждое значение в своей ячейке
+
+```{r error=F, warning = F, message = F, echo=F}
+library(tidyr)
+#table1
+```
+
+##
+***tidyr::pivot_longer()***
+
+<font size=4>
+  - увеличивает количество строк, уменьшает количество столбцов
+</font>
+
+```{r}
+table4a %>% head(2)
+table4a %>% pivot_longer(!country, names_to = "year", values_to = "count")
+
+```
+
+
+##
+***tidyr: pivot_wider()***
+
+<font size=4>
+  - увеличивает количество колонок, уменьшает воличество строк
+</font>
+```{r echo = F}
+table2 %>% head(2)
+```
+
+```{r}
+table2 %>% pivot_wider(names_from = type, values_from = count)
+```
+
+##
+***tidyr: separate()***
+
+<font size=4>
+  - разбивает одну колонку на несколько
+</font>
+```{r}
+table3 %>% head(2)
+table3 %>% separate(rate, sep='/', into = c("cases", "population"))
+```
+
+##
+***tidyr: unite()***
+
+<font size=4>
+
+  - объединяет несколько колонок в одну
+
+</font>
+```{r}
+table5 %>% head(2)
+table5 %>% unite(new, century, year, sep = "_")
+```
+
+
