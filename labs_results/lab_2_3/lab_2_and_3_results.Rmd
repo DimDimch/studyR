@@ -1,0 +1,324 @@
+---
+title: ''
+author: "Serdyukov Dmitriy"
+output: html_document
+---
+
+# Сердюков Дмитрий
+
+## Лабораторная работа №2
+
+Необходимо было выполнить задания 24 и 11
+
+### Задание №24
+
+#### Условие
+
+Используйте файл Payment_and_value_of_Care-Hospital.csv На основе имеющихся данных создайте dataframe, агрегирующий информацию о количестве больниц в городах США. Dataframe должен содержать 5 колонок: название штата, название округа, название города, количество больниц в этом городе и количество больниц в которых осуществляется экстренная медицинская помощь.
+
+Примечание: файл в репозитории был битый, взял оригинал в инетернете.
+
+#### Решение
+
+Для начала считаем данные:
+
+```{r}
+df <- read.csv('data/Payment_and_Value_of_Care-Hospital.csv')
+head(df)
+```
+
+Далее я сразу нахожу такие строчки, из которых смогу определить, оказывается ли в больнице экстренная помощь (экстренной я считаю остановку сердца или сердечный приступ):
+
+```{r}
+emergency_df <- df[
+  ((df$Payment.Measure.Name == 'Payment for heart attack patients') |
+  (df$Payment.Measure.Name == 'Payment for heart failure patients')) , ]
+```
+
+Нахожу больницы как подмножество уникальных записей, отобрав нужные столбцы:
+
+```{r}
+hospitals <- unique(subset(df, select = c(
+    'State', 
+    'County.Name', 
+    'City', 
+    'Facility.Name'
+    )
+  ))
+```
+
+Группирую больницы по штату, округу и городу, чтобы найти количество больниц в каждом городе
+
+```{r}
+hospitals <- aggregate(hospitals$Facility.Name, 
+               by = list(
+                  State = hospitals$State,
+                  County = hospitals$County.Name,
+                  City = hospitals$City), 
+               FUN = length)
+```
+
+Для определения количества больниц, оказывающих медицинскую помощь я из emergency_df выбираю нужные столбцы. По столбцу 'Payment.Footnote' определяю, оказывается ли помощь. Если он пустой, значит оказывается, если нет - стоит число. Проверяю это и записываю вместо любого числа единицу, а если пустой - ноль.
+
+```{r}
+hospitals_emergency <- subset(emergency_df, select = c(
+      'State', 
+      'County.Name', 
+      'City', 
+      'Payment.Footnote'
+    )
+  )
+
+
+fun <- function(x) {
+  if (x == '') {
+    1
+  } else {
+    0
+  }
+}
+
+hospitals_emergency$Payment.Footnote <- as.integer(lapply(hospitals_emergency$Payment.Footnote, fun))
+```
+
+Это для того, чтобы потом группировать как сумму (округляю и делю на 2 так как учитываю по двум параметрам - heart attack и heart failure):
+
+```{r}
+hospitals_emergency <- aggregate(hospitals_emergency$Payment.Footnote, 
+                       by = list(
+                         State = hospitals_emergency$State,
+                         County = hospitals_emergency$County.Name,
+                         City = hospitals_emergency$City), 
+                       FUN = function(x) floor(sum(x) / 2 + 0.5))
+```
+
+Затем я горизонтально соединяю эти датафреймы и именную столбы:
+
+```{r}
+result <- cbind(hospitals, hospitals_emergency$x)
+colnames(result) <- c('State', 'Country', 'City', 'Hospitals Total', 'Hospitals with Emergency Services')
+head(result, 10)
+```
+
+### Задание №11
+
+#### Условие
+
+Используйте файл RH_T.csv Напишите функцию, которая находит 2 соседних дня с максимальным перепадом температуры.
+
+Примечание: файл в репозитории был битый, взял оригинал в инетернете.
+
+#### Решение
+
+Считываю данные:
+
+```{r}
+df <- read.csv('data/RH_T.csv')
+head(df)
+```
+
+Затем составил функцию, которая находит два дня рядом с максимальной разницей:
+
+```{r}
+find_max_diff <- function(df) {
+  max_diff <- 0
+  max_i <- 2
+  for (i in 2:nrow(df)) {
+    dt <- abs(as.numeric(df$T2M[i - 1]) - as.numeric(df$T2M[i]))
+    if (dt > max_diff) {
+      max_diff <- dt
+      max_i = i
+    }
+  }
+  return(df[c(max_i-1, max_i), ])
+}
+```
+
+Проверим функцию на наших данных:
+
+```{r}
+find_max_diff(df)
+```
+
+Как видим, нашлись два дня с максимальным перепадом температупр
+
+## Лабораторная работа №3
+
+Необходимо было выполнить задания 10 и 1
+
+### Задание №10
+
+#### Условие
+
+Файл: *reforest.csv* Примечание: данного файл вообще нет, нашел его где-то в интернете (это было непросто).
+
+Удалите строки, в которых есть пропущенные значения и приведите данные к формату tidydata. Отобразите динамику лесовосстановления по годам с помощью линейного графика для любого из федеральных округов, просуммировав значения соотвествующих субъектов федерации. Подпишите значения на графике. Для минимального значения сделайте подпись красным цветом. Отрегулируйте местоположение подписей так, чтобы рисунок был максимально наглядным. Придумайте новые назания графика и осей.
+
+#### Решение
+
+Для начала считаем данные:
+
+```{r}
+library(tidyverse)
+reforest = read_csv2('data/reforest.csv')
+head(reforest)
+```
+
+Теперь удалим все пустые строчки (также удаляю строчки, где есть странные значения: '...2)' или '-')
+
+```{r}
+reforest <- reforest[rowSums(
+    !is.na(reforest) &
+    reforest[,] != '…2)' &
+    reforest[,] != '-'
+    ) == ncol(reforest), ] 
+```
+
+В файле неправильный десятичный разделитель где-то попадается, поэтому меняю запятую на точку и привожу к численному типу:
+
+```{r}
+reforest[, c(2:ncol(reforest))] <- sapply(reforest[, c(2:ncol(reforest))], 
+                                          function(x) as.double(gsub(",", ".", x)))
+```
+
+После этого к тубблу:
+
+```{r}
+reforest <- as_tibble(reforest)
+```
+
+Я решил взять Северо-западный федеральный округ, поэтому выписываю регионы, которые входят в него и фильтрую таблицу по ним. Далее я считаю суммарные значения по всем годам и прибавляю к названию региона с пометкой "суммарно:". После этого я привожу данные в таблице к "длинному" виду с помощью pivot_longer для удобства построения графика.
+
+```{r}
+need_regions = c(
+  'Республика Карелия',
+  'Республика Коми',
+  'Архангельская область',
+  'Вологодская область',
+  'Новгородская область',
+  'Псковская область'
+)
+
+reforest <- reforest %>%
+  filter(Region %in% need_regions) %>%
+  mutate(Region = paste(
+    Region, '( суммарно:', rowSums(across(where(is.numeric))), ')')) %>% 
+  pivot_longer(cols = `2005`:`2016`,
+               names_to = 'year', 
+               values_to = "value")
+
+head(reforest, 10)
+```
+
+Сторю график, помечая регион с минимальным значением (Псковская область) красным цветом на графике.
+
+```{r}
+ggplot(reforest, aes(x = year, y = value, group = Region)) +
+  geom_line(aes(color = Region)) +
+  geom_point(aes(color = Region)) +
+  scale_colour_manual(values = 
+                        c('magenta','royalblue','green','red','cyan','orange')) +
+  labs(title = 'Лесовосстановление в Сереверо-заподном ФО',
+       x = 'Дата', 
+       y = 'Гектары (тыс.)',
+       color = 'Регионы') + 
+  theme_classic()
+```
+
+### Задание №1
+
+#### Условие
+
+*trades.RData* Объедините таблицы в одну, уберите столбец с территорией торговли, т.к. там только Евросоюз, оставим только строки с экспортом и импортом, вынесете данные по экспорту и импорту в отдельные переменные. Отобразите структуру экспорта продукции из Евросоюза по ведущим партнерам в виде столбчатой диаграммы. Обозначьте разные группы экспортируемых товаров разными цветами. Для каждого партера подпишите значение экспорта. Для каждого партнера подпишите какова доля (процент) каждой из групп экспортируемых товаров в общем экспорте. Отрегулируйте местоположение подписей так, чтобы рисунок был максимально наглядным. Придумайте новые названия графика и осей.
+
+#### Решение
+
+Для начала загрузим данные:
+
+```{r}
+library(tidyverse)
+load('data/trades.RData')
+str(trades)
+```
+
+Соединим все 6 таблиц в одну и удалим столбец с территорией торговли:
+
+```{r}
+trades <- bind_rows(trades)
+
+trades <- trades %>%
+  select(!geo)
+```
+
+Разделим импорт и экспорт по отдельным таблицам
+
+```{r}
+import <- trades %>%
+  filter(indic_et == 'Imports in million of ECU/EURO') %>%
+  select(!indic_et)
+  
+export <- trades %>%
+  filter(indic_et == 'Exports in million of ECU/EURO') %>%
+  select(!indic_et)
+```
+
+Далее будем работать только с экспортом:
+
+```{r}
+head(export)
+```
+
+Небольшое вспомогательное действие: нахожу 7 самых крупных партнеров по экспорту:
+
+```{r}
+big_partners <- export %>%
+  group_by(partner) %>%
+  summarise(values = sum(values)) %>%
+  slice_max(values, n = 7)
+
+print(big_partners)
+```
+
+Далее Оставляю лишь данные по крупным партнерам, группирпую по категориям торговли и считаю суммарные значения в столбец total_values. После этого группирую по партнеру, категории и общему значению, чтобы найти суммарные значения по партнерам.
+
+```{r}
+export <- export %>%
+  filter(partner %in% big_partners$partner) %>%
+  group_by(sitc06) %>%
+  mutate(total_value = sum(values)) %>%
+  group_by(partner, sitc06, total_value) %>%
+  summarise(values = sum(values), .groups = 'drop')
+```
+
+Дополнительно вычисляю процент каждого партнера по каждой категории товаров относительно общих показатей по всем данным
+
+```{r}
+export <- export %>%
+  mutate(percent = round(values / total_value * 100, 1)) %>%
+  select(!total_value)
+```
+
+Строю график по подготовленным данным
+
+```{r}
+ggplot(data = export, aes(x = values, y = partner, fill = sitc06)) +
+  geom_col(position = "dodge") +
+  geom_text(aes(label = paste(values, '(', percent, '%)')), 
+                size = 3.2,
+                position = position_dodge(0.95), 
+                hjust = 0, 
+                check_overlap = TRUE) +
+  labs(title = 'Structure of exports of products from the European Union', 
+       subtitle = 'By leading partners',
+       x = 'Sum Values', 
+       y = 'Partners', 
+       fill = '') +
+  xlim(c(0, 1750000)) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+```
+
+К сожалению, почему-то график обрезается при формировании html, и я прям не знаю, как сделать так, чтобы 
+он смотрелся лучше, мне кажется, что я перепробывал уже все, лучше не становится. 
+Но вот я бы хотел прикрепить фото, как он отрисовывается в RStudio
+![](3_1.png)
